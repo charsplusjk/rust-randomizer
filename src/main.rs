@@ -1,40 +1,63 @@
-use rand::Rng;
+use rand::seq::SliceRandom;
 use std::io::{self, Write};
 
 fn main() {
-    println!("\nWelcome to rust randomizer!");
-    println!("Enter your options one by one. Type 'done' when you're finished:");
+    println!("Welcome to rust randomizer");
+    println!("Write or paste your list of options below and press Enter twice when done:");
 
-    let mut inputs = Vec::new();
+    let mut input = String::new();
 
+    // Read multiline input
     loop {
-        print!("Enter an option: ");
-        io::stdout().flush().unwrap(); // Ensure the prompt is displayed immediately
-
-        let mut input = String::new();
+        let mut line = String::new();
         io::stdin()
-            .read_line(&mut input)
+            .read_line(&mut line)
             .expect("Failed to read input");
-
-        let input = input.trim(); // Remove any surrounding whitespace
-
-        if input.eq_ignore_ascii_case("done") {
-            break;
+        
+        if line.trim().is_empty() {
+            break; // Stop reading when an empty line is entered
         }
-
-        if !input.is_empty() {
-            inputs.push(input.to_string());
-        }
+        
+        input.push_str(&line);
     }
 
-    if inputs.is_empty() {
+    // Split the input into lines, trim whitespace, and collect non-empty lines
+    let options: Vec<String> = input
+        .lines()
+        .map(|line| line.trim().to_string())
+        .filter(|line| !line.is_empty())
+        .collect();
+
+    if options.is_empty() {
         println!("No options were provided. Exiting.");
         return;
     }
 
-    // Randomly select one of the inputs
-    let random_index = rand::thread_rng().gen_range(0..inputs.len());
-    let selected = &inputs[random_index];
+    // Ask the user how many options to select
+    let selected_count = loop {
+        print!("How many options would you like to select? ");
+        io::stdout().flush().unwrap(); // Ensure the prompt is displayed immediately
 
-    println!("\nSelected option: {}", selected);
+        let mut count_input = String::new();
+        io::stdin()
+            .read_line(&mut count_input)
+            .expect("Failed to read input");
+
+        match count_input.trim().parse::<usize>() {
+            Ok(n) if n > 0 && n <= options.len() => break n,
+            _ => println!("Please enter a valid number between 1 and {}.", options.len()),
+        }
+    };
+
+    // Randomly select the specified number of unique options
+    let mut rng = rand::thread_rng();
+    let selected_options: Vec<_> = options
+        .choose_multiple(&mut rng, selected_count)
+        .cloned()
+        .collect();
+
+    println!("\nRandomly selected options:");
+    for option in selected_options {
+        println!("- {}", option);
+    }
 }
